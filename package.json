@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "vega":"node dist/scrap.js",
+    "start":"node dist/scrap.js",
     "build":"tsc --build",
     "dev": "tsx watch src/scrap.ts",
     "placement": "tsx watch darshan/scrap.ts"
