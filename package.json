@@ -1,0 +1,26 @@
+{
+  "name": "movie-scraper",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "vega":"node dist/scrap.js",
+    "build":"tsc --build",
+    "dev": "tsx watch src/scrap.ts",
+    "placement": "tsx watch darshan/scrap.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@types/cheerio": "^0.22.35",
+    "cheerio": "^1.1.2",
+    "mongoose": "^9.1.5",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
