@@ -3,7 +3,6 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 import fetch from "node-fetch";
 import type { AnyNode } from "domhandler";
 
-process.loadEnvFile();
 
 if(process.env.MONGO_URI){
   console.log("found url")
