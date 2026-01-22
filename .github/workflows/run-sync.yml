@@ -18,5 +18,8 @@ jobs:
       - name: Install deps
         run: npm install
 
+      - name: build
+        run: npm run build
+
       - name: Run script
         run: npm start
