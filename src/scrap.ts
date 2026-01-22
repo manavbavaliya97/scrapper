@@ -267,7 +267,7 @@ async function run(): Promise<void> {
             console.log(`🎥 Page ${page} → ${i + 1}/${links.length}`);
 
             try {
-                const data = await scrapeMovieDetail(links[i]);
+                const data = await scrapeMovieDetail(links[i]!);
 
                 if (!data.slug) continue;
 
