@@ -66,7 +66,7 @@ const BASE_URL = "https://vegavinc.com";
 const HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
 };
-const TOTAL_PAGES = 5;
+const TOTAL_PAGES = 538;
 const DELAY = 1500;
 
 /* ===============================
