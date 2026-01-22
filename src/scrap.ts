@@ -1,11 +1,12 @@
 import * as cheerio from "cheerio";
 import mongoose, { Schema, Document, Model } from "mongoose";
-import fetch from "node-fetch";
-import type { AnyNode } from "domhandler";
 
-
-if(process.env.MONGO_URI){
-  console.log("found url")
+/* ===============================
+   TYPES
+================================ */
+interface DownloadButton {
+    text: string;
+    link: string;
 }
 
 interface MovieDocument extends Document {
@@ -15,7 +16,7 @@ interface MovieDocument extends Document {
     imdbRating: number;
     description: string;
     screenshots: string[];
-    downloadButtons: { text: string; link: string }[];
+    downloadButtons: DownloadButton[];
     genres: string[];
     releaseYear?: number;
     quality?: string;
@@ -37,36 +38,39 @@ const MovieSchema = new Schema<MovieDocument>(
         posterUrl: { type: String, required: true },
         imdbRating: { type: Number, required: true },
         description: { type: String, required: true },
-        screenshots: [String],
+        screenshots: [{ type: String }],
         downloadButtons: [{ text: String, link: String }],
-        genres: [String],
-        releaseYear: Number,
-        quality: String,
-        cast: [String],
-        languages: [String],
-        size: String,
-        resolution: String,
-        audio: String,
-        series: String,
+        genres: [{ type: String }],
+        releaseYear: { type: Number },
+        quality: { type: String },
+        cast: [{ type: String }],
+        languages: [{ type: String }],
+        size: { type: String },
+        resolution: { type: String },
+        audio: { type: String },
+        series: { type: String },
     },
     { timestamps: true }
 );
 
 const Movie: Model<MovieDocument> =
-    mongoose.models.Movie || mongoose.model<MovieDocument>("Movie", MovieSchema);
+    mongoose.models.Movie ||
+    mongoose.model<MovieDocument>("Movie", MovieSchema);
 
 /* ===============================
    CONFIG
 ================================ */
-const MONGO_URI = process.env.MONGO_URI ??
+const MONGO_URI: string =
     "mongodb+srv://manav:manav@manavdb.uvl1qs4.mongodb.net/test";
 
-const BASE_URL = "https://vegavinc.com";
-const HEADERS = {
+const BASE_URL: string = "https://vegavinc.com";
+
+const HEADERS: Record<string, string> = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
 };
-const TOTAL_PAGES = 538;
-const DELAY = 1500;
+
+const TOTAL_PAGES: number = 5;
+const DELAY: number = 1500;
 
 /* ===============================
    UTILS
@@ -79,7 +83,7 @@ const slugify = (t: string): string =>
 
 async function fetchHTML(url: string): Promise<string> {
     const res = await fetch(url, { headers: HEADERS });
-    return await res.text();
+    return res.text();
 }
 
 /* ===============================
@@ -87,54 +91,68 @@ async function fetchHTML(url: string): Promise<string> {
 ================================ */
 async function connectMongo(): Promise<void> {
     await mongoose.connect(MONGO_URI);
-    console.log("✅ MongoDB connected");
+    console.log("✅ MongoDB connected\n");
 }
 
 /* ===============================
    MOVIE DETAIL SCRAPER
 ================================ */
-async function scrapeMovieDetail(url: string): Promise<Partial<MovieDocument>> {
-    const html = await fetchHTML(url);
-    if (!html || html.length < 1000) throw new Error("Blocked HTML");
+async function scrapeMovieDetail(
+    url: string
+): Promise<Partial<MovieDocument>> {
+
+    const html: string = await fetchHTML(url);
+    if (!html || html.length < 1000) {
+        throw new Error("Blocked HTML");
+    }
 
     const $ = cheerio.load(html);
 
-    const title = $("h1.entry-title").text().trim();
-    const slug = slugify(title);
+    const title: string = $("h1.entry-title").text().trim();
+    const slug: string = slugify(title);
 
-    const posterUrl =
-        $('meta[property="og:image"]').attr("content") ??
+    const posterUrl: string =
+        $('meta[property="og:image"]').attr("content") ||
         "https://via.placeholder.com/300x450";
 
-    const description =
-        $('meta[name="description"]').attr("content") ?? title;
+    const description: string =
+        $('meta[name="description"]').attr("content") || title;
 
-    let imdbRating = 0;
+    let imdbRating: number = 0;
     let genres: string[] = [];
     let cast: string[] = [];
     let languages: string[] = [];
-    let size = "";
-    let quality = "";
-    let resolution = "";
+    let size: string = "";
+    let quality: string = "";
+    let resolution: string | undefined = "";
 
-    $("p").each((_: number, p: AnyNode) => {
-        const text = $(p).text();
+    /* ===== INFO BLOCK ===== */
+    $("p").each((_, p) => {
+        const text: string = $(p).text();
 
         if (text.includes("IMDb Rating")) {
-            imdbRating = parseFloat(text.match(/([\d.]+)/)?.[1] ?? "0");
+            imdbRating =
+                parseFloat(text.match(/([\d.]+)/)?.[1] ?? "0") || 0;
         }
 
-        $(p).find("strong").each((_: number, s: AnyNode) => {
-            const label = $(s).text().replace(":", "").trim().toLowerCase();
-            const value = (s as any).nextSibling?.nodeValue?.trim();
+        $(p).find("strong").each((_, s) => {
+            const label: string = $(s)
+                .text()
+                .replace(":", "")
+                .trim()
+                .toLowerCase();
+
+            const value: string | undefined =
+                (s as unknown as { nextSibling?: { nodeValue?: string } })
+                    .nextSibling?.nodeValue?.trim();
 
             if (!value) return;
 
             if (label === "genres")
-                genres = value.split(",").map((v: string) => v.trim());
+                genres = value.split(",").map(v => v.trim());
 
             if (label === "cast")
-                cast = value.split(",").map((v: string) => v.trim());
+                cast = value.split(",").map(v => v.trim());
 
             if (label === "original language") {
                 if (value.toLowerCase().includes("hi")) languages.push("Hindi");
@@ -146,21 +164,24 @@ async function scrapeMovieDetail(url: string): Promise<Partial<MovieDocument>> {
             if (label === "quality") {
                 quality = value;
                 resolution =
-                    value.match(/(480p|720p|1080p|2160p)/gi)?.join(", ") ?? "";
+                    value.match(/(480p|720p|1080p|2160p)/gi)?.join(", ");
             }
         });
     });
 
     /* ===== DOWNLOAD LINKS ===== */
-    const downloadButtons: { text: string; link: string }[] = [];
+    const downloadButtons: DownloadButton[] = [];
 
-    $(".download-links-div h3").each((i: number, h3: AnyNode) => {
-        const q = $(h3).text().trim();
+    $(".download-links-div h3").each((i, h3) => {
+        const q: string = $(h3).text().trim();
+
         if (/(480p|720p|1080p|2160p)/i.test(q)) {
-            const link = $(".download-links-div h3")
-                .eq(i + 1)
-                .find("a")
-                .attr("href");
+            const link: string | undefined =
+                $(".download-links-div h3")
+                    .eq(i + 1)
+                    .find("a")
+                    .attr("href");
+
             if (link) downloadButtons.push({ text: q, link });
         }
     });
@@ -169,18 +190,30 @@ async function scrapeMovieDetail(url: string): Promise<Partial<MovieDocument>> {
         downloadButtons.push({ text: "Download", link: url });
     }
 
+    /* ===== SCREENSHOTS ===== */
+    const screenshots = new Set<string>();
 
-
-     const screenshots : string[] = [];
-    $("img").each((_, img) => {
-        let src = $(img).attr("src");
-        if (src && src.includes("vlcsnap")) {
-            if (src.startsWith("/")) src = BASE_URL + src;
-            screenshots.push(src);
+    $("h3").each((_, h3) => {
+        if ($(h3).text().toLowerCase().includes("screenshot")) {
+            $(h3)
+                .nextAll("img")
+                .each((_, img) => {
+                    let src: string | undefined = $(img).attr("src");
+                    if (src) {
+                        if (src.startsWith("/")) src = BASE_URL + src;
+                        screenshots.add(src);
+                    }
+                });
         }
     });
 
- 
+    $("img").each((_, img) => {
+        let src: string | undefined = $(img).attr("src");
+        if (src && /vlcsnap|screenshot|screen|snap/i.test(src)) {
+            if (src.startsWith("/")) src = BASE_URL + src;
+            screenshots.add(src);
+        }
+    });
 
     return {
         title,
@@ -188,7 +221,7 @@ async function scrapeMovieDetail(url: string): Promise<Partial<MovieDocument>> {
         posterUrl,
         imdbRating,
         description,
-        screenshots,
+        screenshots: [...screenshots],
         downloadButtons,
         genres,
         cast,
@@ -203,11 +236,13 @@ async function scrapeMovieDetail(url: string): Promise<Partial<MovieDocument>> {
    LISTING SCRAPER
 ================================ */
 async function scrapeListingPage(page: number): Promise<string[]> {
-    const url = page === 1 ? BASE_URL : `${BASE_URL}/page/${page}/`;
+    const url: string =
+        page === 1 ? BASE_URL : `${BASE_URL}/page/${page}/`;
+
     const $ = cheerio.load(await fetchHTML(url));
 
     return $(".movie-grid h3.entry-title a")
-        .map((_: number, a: AnyNode) => $(a).attr("href")!)
+        .map((_, a) => $(a).attr("href")!)
         .get();
 }
 
@@ -217,33 +252,47 @@ async function scrapeListingPage(page: number): Promise<string[]> {
 async function run(): Promise<void> {
     await connectMongo();
 
-    let links: string[] = [];
+    console.log("🚀 Reverse scraping started");
+    console.log(`📚 Total pages: ${TOTAL_PAGES}\n`);
 
-    for (let p = 1; p <= TOTAL_PAGES; p++) {
-        links.push(...await scrapeListingPage(p));
-        await sleep(DELAY);
-    }
+    let totalSaved: number = 0;
 
-    links = [...new Set(links)];
-    console.log("🎬 Movies:", links.length);
+    for (let page = TOTAL_PAGES; page >= 1; page--) {
+        console.log(`📄 Page ${page}/${TOTAL_PAGES}`);
 
-    for (const link of links) {
-        try {
-            const data = await scrapeMovieDetail(link);
-            if (!data.slug) continue;
+        const links: string[] = await scrapeListingPage(page);
+        console.log(`🎬 Movies found: ${links.length}`);
 
-            if (!(await Movie.findOne({ slug: data.slug }))) {
-                await Movie.create(data);
-                console.log("✅ Saved:", data.title);
+        for (let i = 0; i < links.length; i++) {
+            console.log(`🎥 Page ${page} → ${i + 1}/${links.length}`);
+
+            try {
+                const data = await scrapeMovieDetail(links[i]);
+
+                if (!data.slug) continue;
+
+                if (!(await Movie.findOne({ slug: data.slug }))) {
+                    await Movie.create(data);
+                    totalSaved++;
+                    console.log("✅ Saved:", data.title);
+                }
+            } catch (e: unknown) {
+                if (e instanceof Error) {
+                    console.error("❌ Failed:", e.message);
+                } else {
+                    console.error("❌ Unknown error");
+                }
             }
-        } catch (e: any) {
-            console.error("❌ Error:", link, e.message);
+
+            await sleep(DELAY);
         }
-        await sleep(DELAY);
+
+        console.log(`✅ Page ${page} completed\n`);
+        await sleep(DELAY * 2);
     }
 
+    console.log(`🏁 Finished | Total saved: ${totalSaved}`);
     await mongoose.disconnect();
-    console.log("🏁 Done");
 }
 
 run();
