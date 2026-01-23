@@ -69,7 +69,7 @@ const HEADERS: Record<string, string> = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
 };
 
-const TOTAL_PAGES: number = 538;
+const TOTAL_PAGES: number = 90;
 const DELAY: number = 1500;
 
 /* ===============================
