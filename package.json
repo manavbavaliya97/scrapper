@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "clean":"node dist/cleaner.js",
     "start":"node dist/scrap.js",
     "build":"tsc --build",
     "dev": "tsx watch src/scrap.ts",
