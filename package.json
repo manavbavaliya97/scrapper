@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "ddos":"node dist/ddos.js",
     "clean":"node dist/cleaner.js",
     "start":"node dist/scrap.js",
     "build":"tsc --build",
