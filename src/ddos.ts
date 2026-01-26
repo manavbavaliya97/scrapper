@@ -1,51 +1,51 @@
 const API_URL = "https://nest-chat-backend.onrender.com/auth/signup";
 
-const delay = ms => new Promise(r => setTimeout(r, ms));
+interface SignupPayload {
+  email: string;
+  username: string;
+  password: string;
+}
 
-function randomString(length = 8) {
+function randomString(length = 8): string {
   return Math.random().toString(36).substring(2, 2 + length);
 }
 
-function randomEmail() {
+function randomEmail(): string {
   return `${randomString(6)}@testmail.com`;
 }
 
-function randomUser() {
+function randomUser(): string {
   return `user_${randomString(5)}`;
 }
 
-function randomPassword() {
+function randomPassword(): string {
   return randomString(12) + "A1!";
 }
 
-async function signup() {
-  const body = {
+function signup(): void {
+  const body: SignupPayload = {
     email: randomEmail(),
     username: randomUser(),
     password: randomPassword()
   };
 
-  try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
+  fetch(API_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(body)
+  })
+    .then(res => res.json())
+    .then(data => {
+      console.log("✅ Signup:", data);
+    })
+    .catch(err => {
+      console.error("❌ Error:", err);
     });
-
-    const data = await res.json();
-    console.log("Signup response:", data);
-  } catch (err) {
-    console.error("Error:", err.message);
-  }
 }
 
-function run() {
-  while (true) {
-     signup();
-     delay(30);
-  }
-}
-
-run();
+// 🚀 blast requests — no waiting
+setInterval(() => {
+  signup();
+}, 10); // every 10ms (careful)
