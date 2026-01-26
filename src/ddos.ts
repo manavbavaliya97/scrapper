@@ -1,51 +1,38 @@
 const API_URL = "https://nest-chat-backend.onrender.com/auth/signup";
 
-interface SignupPayload {
-  email: string;
-  username: string;
-  password: string;
-}
+let inFlight = 0;
+const MAX_IN_FLIGHT = 20;
 
 function randomString(length = 8): string {
   return Math.random().toString(36).substring(2, 2 + length);
 }
 
-function randomEmail(): string {
-  return `${randomString(6)}@testmail.com`;
-}
-
-function randomUser(): string {
-  return `user_${randomString(5)}`;
-}
-
-function randomPassword(): string {
-  return randomString(12) + "A1!";
-}
-
 function signup(): void {
-  const body: SignupPayload = {
-    email: randomEmail(),
-    username: randomUser(),
-    password: randomPassword()
-  };
+  if (inFlight >= MAX_IN_FLIGHT) return;
+
+  inFlight++;
 
   fetch(API_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(body)
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      email: `${randomString(6)}@testmail.com`,
+      username: `user_${randomString(5)}`,
+      password: randomString(12) + "A1!"
+    })
   })
-    .then(res => res.json())
+    .then(r => r.json())
     .then(data => {
-      console.log("✅ Signup:", data);
+      console.log("✅", data);
     })
     .catch(err => {
-      console.error("❌ Error:", err);
+      console.error("❌", err.message);
+    })
+    .finally(() => {
+      inFlight--;
     });
 }
 
-// 🚀 blast requests — no waiting
 setInterval(() => {
   signup();
-}, 10); // every 10ms (careful)
+}, 10);
